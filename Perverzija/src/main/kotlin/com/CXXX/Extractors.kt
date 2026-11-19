@@ -99,8 +99,8 @@ open class Xtremestream : ExtractorApi() {
 
         val page = app.get(url, referer = referer ?: "https://perverzija.com", headers = mapOf("User-Agent" to userAgent)).text
         val boot = Regex("""XSFTK\.boot\(\s*["']([^"']+)["']\s*,\s*["']([^"']+)["']""").find(page) ?: return
-        val videoId = boot.groupValues[1]
-        val token = boot.groupValues[2]
+        val videoId = boot.groupValues.get(1)
+        val token = boot.groupValues.get(2)
 
         fun api(op: String) = "$origin/player/proto_api.php?data=$videoId&op=$op&vt=${URLEncoder.encode(token, "UTF-8")}"
         val apiHeaders = mapOf("User-Agent" to userAgent, "Referer" to url, "X-XS-P" to "1")
@@ -109,7 +109,7 @@ open class Xtremestream : ExtractorApi() {
         val raw = app.get(api("manifest"), headers = apiHeaders).okhttpResponse.body.bytes()
 
         val mask = MessageDigest.getInstance("SHA-256").digest("M|$videoId|$token".toByteArray())
-        val manifest = JSONObject(String(ByteArray(raw.size) { (raw[it].toInt() xor mask[it % mask.size].toInt()).toByte() }))
+        val manifest = JSONObject(String(ByteArray(raw.size) { (raw.get(it).toInt() xor mask.get(it % mask.size).toInt()).toByte() }))
 
         val cdn = manifest.opt("cdn")
         val hosts: List<String> = when (cdn) {
@@ -132,7 +132,7 @@ open class Xtremestream : ExtractorApi() {
                 append("#EXT-X-TARGETDURATION:${entry.optInt("td", 10)}\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n")
                 append("#EXT-X-KEY:METHOD=AES-128,URI=\"$keyUri\"\n")
                 for (i in 0 until durs.length()) {
-                    append("#EXTINF:${durs.get(i)},\nhttps://${hosts[i % hosts.size]}/cdn/down/$videoId/${q}_enc/$q$i.html\n")
+                    append("#EXTINF:${durs.get(i)},\nhttps://${hosts.get(i % hosts.size)}/cdn/down/$videoId/${q}_enc/$q$i.html\n")
                 }
                 append("#EXT-X-ENDLIST\n")
             }
