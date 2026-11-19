@@ -19,12 +19,11 @@ import com.lagradost.cloudstream3.newSearchResponseList
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
-import kotlinx.coroutines.delay
 import org.jsoup.nodes.Element
 
 class Perverzija : MainAPI() {
     override var name = "Perverzija"
-    override var mainUrl = "https://tube.perverzija.com"
+    override var mainUrl = "https://perverzija.com"
     override val supportedTypes = setOf(TvType.NSFW)
 
     override val hasDownloadSupport = true
@@ -70,7 +69,6 @@ class Perverzija : MainAPI() {
         return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
         }
-
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
@@ -81,12 +79,11 @@ class Perverzija : MainAPI() {
         return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
         }
-
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
         val url = if (query.contains(" ")) {
-        "$mainUrl/page/$page/?s=${query.replace(" ", "+")}&orderby=date"
+            "$mainUrl/page/$page/?s=${query.replace(" ", "+")}&orderby=date"
         } else {
             "$mainUrl/tag/$query/page/$page/"
         }
@@ -94,9 +91,9 @@ class Perverzija : MainAPI() {
         val results = app.get(url, interceptor = cfInterceptor).document
             .select("div.row div div.post").mapNotNull {
                 it.toSearchResult()
-        }.distinctBy { it.url }
+            }.distinctBy { it.url }
 
-        val hasNext = if (results.isEmpty()) false else true
+        val hasNext = results.isNotEmpty()
         return newSearchResponseList(results, hasNext)
     }
 
@@ -136,9 +133,15 @@ class Perverzija : MainAPI() {
         val response = app.get(data, interceptor = cfInterceptor)
         val document = response.document
 
-        val iframeUrl = document.select("div#player-embed iframe").attr("src")
+        val iframeUrl = document.selectFirst("div#player-embed iframe")?.attr("src")
+            ?: document.selectFirst("iframe")?.attr("src")
+            ?: return false
 
-        Xtremestream().getUrl(iframeUrl, data, subtitleCallback, callback)
+        if (iframeUrl.contains("xtremestream") && iframeUrl.contains("index.php")) {
+            Xtremestream().getUrl(iframeUrl, "$mainUrl/", subtitleCallback, callback)
+        } else {
+            loadExtractor(iframeUrl, "$mainUrl/", subtitleCallback, callback)
+        }
 
         return true
     }
