@@ -1,0 +1,8 @@
+{
+  "name": "Mi CXXX",
+  "description": "Repositorio personalizado",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/cuentadepruebanumerotwoxdxd-create/CXXX/builds/plugins.json"
+  ]
+}
